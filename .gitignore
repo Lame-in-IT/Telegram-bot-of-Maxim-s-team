@@ -1,0 +1,6 @@
+venv
+%Работа%Maksim reklama WB%Bot_stocks_Maks
+__pycache__
+config.py
+token_bot.py
+api_shops.py
