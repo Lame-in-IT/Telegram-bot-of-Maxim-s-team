@@ -6,9 +6,11 @@ from sqlalchemy_utils import database_exists, create_database
 import pandas as pd
 import logging
 import json
+import openpyxl
+from openpyxl.styles.alignment import Alignment
 
-from get_date import get_date_7
-from api_shops import api_shops, name_shops
+# from get_date import get_date_7
+# from api_shops import api_shops, name_shops
 
 
 def get_engine(user, passwd, host, port, db):
@@ -64,19 +66,6 @@ def created_user(data_user):
         cursor.execute("""INSERT INTO user_team(id, is_bot, first_name, username, language_code)
                           VALUES(%s, %s, %s, %s, %s)""", [data_user["id"], data_user["is_bot"], data_user["first_name"], data_user["username"],
                                                           data_user["language_code"]])
-
-def get_id_and_api_user():
-    try:
-        table_user = pd.read_sql("SELECT * FROM users WHERE approval = 'Согласен'", con=get_engine_from_settings())
-        list_name_user = list(table_user["first_name"])
-        list_id_user = list(table_user["id"])
-        list_api = []
-        for item_api in list_id_user:
-            table_api_user = pd.read_sql(f"SELECT * FROM api_users WHERE id = {item_api}", con=get_engine_from_settings())
-            list_api.append(table_api_user['statistic_api'][0])
-        return [list_name_user, list_id_user, list_api]
-    except Exception as ex:
-        logging.exception(ex)
         
 def get_sales_today():
     try:
@@ -84,16 +73,53 @@ def get_sales_today():
             "SELECT * FROM price_comparison_wb_team WHERE percentage_difference <= -50",
             con=get_engine_from_settings(),
         )
-        contact_user = pd.read_sql("SELECT contacts FROM user_team WHERE id = 1323522063", con=get_engine_from_settings())
-        full_list_contact = ["1323522063"]
+        contact_user = pd.read_sql("SELECT contacts FROM user_team WHERE id IN(1323522063)", con=get_engine_from_settings()) #549779286
+        full_list_contact = ["1323522063"] #549779286
         if contact_user["contacts"][0] != None:
             list_con = contact_user["contacts"][0].split(',')
             full_list_contact.extend(
                 list_con[it_con] for it_con in range(len(list_con) - 1)
             )
+        book = openpyxl.Workbook()
+        del book['Sheet']
+        sheet = book.create_sheet("Сводная по изменению продаж")
+        sheet["A1"] = "Артикул"
+        sheet["A1"].alignment = Alignment(horizontal='center')
+        sheet.column_dimensions['A'].width = 30
+        sheet["B1"] = "Продано позавчера"
+        sheet["B1"].alignment = Alignment(horizontal='center')
+        sheet.column_dimensions['B'].width = 18
+        sheet["C1"] = "Продано вчера"
+        sheet["C1"].alignment = Alignment(horizontal='center')
+        sheet.column_dimensions['C'].width = 16
+        sheet["D1"] = "Разница продаж"
+        sheet["D1"].alignment = Alignment(horizontal='center')
+        sheet.column_dimensions['D'].width = 16
+        sheet["E1"] = "Процент разницы"
+        sheet["E1"].alignment = Alignment(horizontal='center')
+        sheet.column_dimensions['E'].width = 16
+        sheet["F1"] = "Магазин"
+        sheet["F1"].alignment = Alignment(horizontal='center')
+        sheet.column_dimensions['F'].width = 16
+        row = 2
+        for insex, item in enumerate(list(table_wb_cards["articl"])):
+            sheet[f"A{row}"] = item
+            sheet[f"B{row}"] = list(table_wb_cards["sales_yesterday"])[insex]
+            sheet[f"B{row}"].alignment = Alignment(horizontal='center')
+            sheet[f"C{row}"] = list(table_wb_cards["sales_today"])[insex]
+            sheet[f"C{row}"].alignment = Alignment(horizontal='center')
+            sheet[f"D{row}"] = f"{list(table_wb_cards['sales_difference'])[insex]}  шт."
+            sheet[f"D{row}"].alignment = Alignment(horizontal='center')
+            sheet[f"E{row}"] = f"{list(table_wb_cards['percentage_difference'])[insex]}  %"
+            sheet[f"E{row}"].alignment = Alignment(horizontal='center')
+            sheet[f"F{row}"] = list(table_wb_cards["shops"])[insex]
+            sheet[f"F{row}"].alignment = Alignment(horizontal='center')
+            row += 1
+        book.save("Изменение продаж.xlsx")
+        book.close()
         return [list(table_wb_cards["articl"]), list(table_wb_cards["sales_yesterday"]), list(table_wb_cards["sales_today"]),
                 list(table_wb_cards["sales_difference"]), list(table_wb_cards["percentage_difference"]),
-                full_list_contact, list(table_wb_cards["shops"])]
+                full_list_contact, list(table_wb_cards["shops"]), "Изменение продаж.xlsx"]
     except Exception as ex:
         logging.exception(ex)
 
@@ -103,23 +129,59 @@ def get_satat_wb():
             "SELECT * FROM no_sales_for_7_team WHERE stocks_user > 0 AND sales_user = 0",
             con=get_engine_from_settings(),
         )
-        contact_user = pd.read_sql("SELECT contacts FROM user_team WHERE id = 1323522063", con=get_engine_from_settings())
-        full_list_contact = ["1323522063"]
+        contact_user = pd.read_sql("SELECT contacts FROM user_team WHERE id IN(1323522063)", con=get_engine_from_settings())#549779286, 
+        full_list_contact = ["1323522063"]# 549779286, 
         if contact_user["contacts"][0] != None:
             list_con = contact_user["contacts"][0].split(',')
             full_list_contact.extend(
                 list_con[it_con] for it_con in range(len(list_con) - 1)
             )
+        book = openpyxl.Workbook()
+        del book['Sheet']
+        sheet = book.create_sheet("Сводная не продаж за неделю")
+        sheet["A1"] = "Артикул"
+        sheet["A1"].alignment = Alignment(horizontal='center')
+        sheet.column_dimensions['A'].width = 30
+        sheet["B1"] = "Название"
+        sheet["B1"].alignment = Alignment(horizontal='center')
+        sheet.column_dimensions['B'].width = 18
+        sheet["C1"] = "На складах"
+        sheet["C1"].alignment = Alignment(horizontal='center')
+        sheet.column_dimensions['C'].width = 16
+        sheet["D1"] = "Продано за неделю"
+        sheet["D1"].alignment = Alignment(horizontal='center')
+        sheet.column_dimensions['D'].width = 20
+        sheet["E1"] = "Ссылка"
+        sheet["E1"].alignment = Alignment(horizontal='center')
+        sheet.column_dimensions['E'].width = 50
+        sheet["F1"] = "Магазин"
+        sheet["F1"].alignment = Alignment(horizontal='center')
+        sheet.column_dimensions['F'].width = 16
+        row = 2
+        for insex, item in enumerate(list(table_wb_cards["supplierarticle"])):
+            sheet[f"A{row}"] = item
+            sheet[f"B{row}"] = list(table_wb_cards["subject"])[insex]
+            sheet[f"C{row}"] = f"{list(table_wb_cards['stocks_user'])[insex]}  шт."
+            sheet[f"C{row}"].alignment = Alignment(horizontal='center')
+            sheet[f"D{row}"] = f"{list(table_wb_cards['sales_user'])[insex]}  шт."
+            sheet[f"D{row}"].alignment = Alignment(horizontal='center')
+            sheet[f"E{row}"] = list(table_wb_cards["link_site"])[insex]
+            sheet[f"E{row}"].alignment = Alignment(horizontal='center')
+            sheet[f"F{row}"] = list(table_wb_cards["shops"])[insex]
+            sheet[f"F{row}"].alignment = Alignment(horizontal='center')
+            row += 1
+        book.save("Не проданные товары за неделю.xlsx")
+        book.close()
         return [list(table_wb_cards["nmid"]), list(table_wb_cards["supplierarticle"]), list(table_wb_cards["subject"]),
                 list(table_wb_cards["stocks_user"]), list(table_wb_cards["sales_user"]), list(table_wb_cards["link_site"]),
-                full_list_contact, list(table_wb_cards["shops"])]
+                full_list_contact, list(table_wb_cards["shops"]), "Не проданные товары за неделю.xlsx"]
     except Exception as ex:
         logging.exception(ex)
         
 def created_xlsx_user_provider():  # sourcery skip: low-code-quality
     try:
-        table_user = pd.read_sql("SELECT * FROM user_team WHERE id = 1323522063", con=get_engine_from_settings())
-        full_list_contact = ['1323522063']
+        table_user = pd.read_sql("SELECT * FROM user_team WHERE id IN(1323522063)", con=get_engine_from_settings())#549779286, 
+        full_list_contact = ['1323522063']#549779286, 
         if table_user["contacts"][0] != None:
             list_con = table_user["contacts"][0].split(',')
             full_list_contact.extend(
@@ -190,5 +252,5 @@ def delet_cont(id, contact):
         return f"Контакт {contact} не удален. Проверьте список контактов, нажав кнопку 'Удалить контакты для рассылки'"
 
 if __name__=="__main__":
-    created_xlsx_user_provider()
+    get_sales_today()
     

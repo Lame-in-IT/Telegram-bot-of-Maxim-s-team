@@ -24,15 +24,16 @@ async def command_help(message: types.Message):
         
 @dp.message_handler(content_types=types.ContentType.USER_SHARED)
 async def on_user_shared(message: types.Message):
-    if message.from_user.id == 1323522063:
+    if message.from_user.id in [1323522063, 549779286]:
         req_cont = create_comtact(message.from_user.id, message.user_shared.user_id)
         await bot.send_message(message.from_user.id, f"{req_cont}.".format(message.from_user), reply_markup=nav.mainMenu)
+        await bot.send_message(1323522063, f"{req_cont}.".format(message.from_user), reply_markup=nav.mainMenu)
     else:
         await bot.send_message(message.from_user.id, "У вас нет прав добавлять контакты.".format(message.from_user), reply_markup=nav.mainMenu)
     
 @dp.message_handler(text="Удалить контакты для рассылки")
 async def del_contact(message: types.Message):
-    if message.from_user.id == 1323522063:
+    if message.from_user.id in [1323522063, 549779286]:
         data_cont = get_contact(message.from_user.id)
         for index, item in enumerate(data_cont[0]):
             await bot.send_message(message.from_user.id, f"Имя - {item}\n"
@@ -46,6 +47,7 @@ async def callback_1(callback: types.CallbackQuery):
     contact = callback["message"]["reply_markup"]["inline_keyboard"][0][0]["callback_data"]
     req = delet_cont(id_user, contact)
     await bot.send_message(callback.from_user.id, f"{req}".format(callback.from_user), reply_markup=nav.mainMenu)
+    await bot.send_message(1323522063, f"{req}".format(callback.from_user), reply_markup=nav.mainMenu)
     
     
 @dp.message_handler(text="diff")
@@ -61,11 +63,12 @@ async def get_no_sales_wb(message: types.Message):
                                     f'📉̶̶  Разница продаж -   {get_satat[3][index]} шт.\n'
                                     f'📉  Процент разницы -   {satat} %\n'
                                     f'Магазин -- {get_satat[6][index]}'.format(message.from_user))
-            await bot.send_message(message.from_user.id, "Успешная рассылка")
+            await bot.send_document(chat_id=item_id_user, document=open(get_satat[7], 'rb'))
+            await bot.send_message(1323522063, "Успешная рассылка")
         except Exception as ex:
                 logging.exception(ex)
                 await message.answer("Возникла ошибка. Попробуйте еще раз сделать запрос.")
-    await bot.send_message(message.from_user.id, "Рассылка завершина")
+    await bot.send_message(1323522063, "Рассылка завершина")
     
 @dp.message_handler(text="sales")
 async def get_no_sales_wb(message: types.Message):
@@ -80,11 +83,14 @@ async def get_no_sales_wb(message: types.Message):
                                     f'💸̶̶  Продано за неделю {get_satat[4][index]}\n'
                                     f'💵  Ссылка: {get_satat[5][index]}\n'
                                     f'Магазин -- {get_satat[7][index]}'.format(message.from_user))
-            await bot.send_message(message.from_user.id, "Успешная рассылка")
+            # await bot.send_message(message.from_user.id, "Успешная рассылка")
+            await bot.send_document(chat_id=item_id_user, document=open(get_satat[8], 'rb'))
+            await bot.send_message(1323522063, "Успешная рассылка")
         except Exception as ex:
                 logging.exception(ex)
                 await message.answer("Возникла ошибка. Попробуйте еще раз сделать запрос.")
-    await bot.send_message(message.from_user.id, "Рассылка завершина")
+    # await bot.send_message(message.from_user.id, "Рассылка завершина")
+    await bot.send_message(1323522063, "Рассылка завершина")
         
         
 @dp.message_handler(text="prov")
@@ -93,13 +99,15 @@ async def get_add_provider_wb(message: types.Message):
     for id in get_add_stocks:
         try:
             await bot.send_document(chat_id=id, document=open("Рекомендация по заказу товаров у поставщика.xlsx", 'rb'))
-            await bot.send_message(message.from_user.id, "Успешная рассылка")
+            # await bot.send_message(message.from_user.id, "Успешная рассылка")
+            await bot.send_message(1323522063, "Успешная рассылка")
         except Exception as ex:
             logging.exception(ex)
             await message.answer("Возникла ошибка. Попробуйте еще раз сделать запрос.")
         # await os.remove(get_add_stocks[1])
         time.sleep(0.3)
-    await bot.send_message(message.from_user.id, "Рассылка завершина")
+    # await bot.send_message(message.from_user.id, "Рассылка завершина")
+    await bot.send_message(1323522063, "Рассылка завершина")
     
 @dp.message_handler(text="stocks")
 async def get_add_stocks_wb(message: types.Message):
@@ -107,13 +115,18 @@ async def get_add_stocks_wb(message: types.Message):
     for id in get_add_stocks:
         try:
             await bot.send_document(chat_id=id, document=open("Нехватка товара на складах.xlsx", 'rb'))
-            await bot.send_message(message.from_user.id, "Успешная рассылка")
+            # await bot.send_message(message.from_user.id, "Успешная рассылка")
+            await bot.send_message(1323522063, "Успешная рассылка")
         except Exception as ex:
             logging.exception(ex)
             await message.answer("Возникла ошибка. Попробуйте еще раз сделать запрос.")
     # await os.remove(get_add_stocks[1][index_id])
         time.sleep(0.3)
-    await bot.send_message(message.from_user.id, "Рассылка завершина")  
+    await bot.send_message(1323522063, "Рассылка завершина")  
+    
+@dp.message_handler()
+async def bot_message_help(message: types.Message):
+    await bot.send_message(message.from_user.id, 'Этот бот работает автоматически', reply_markup=nav.mainMenu)
     
 if __name__ == '__main__':
     executor.start_polling(dp, skip_updates=True)
